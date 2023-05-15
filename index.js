@@ -3,7 +3,47 @@ const express = require('express');
 const app = express();
 const morgan = require('morgan');
 const cors = require('cors');
-const Person = require('./modules/people');
+// const Person = require('./modules/people');
+const mongoose = require('mongoose');
+
+mongoose.set('strictQuery', false);
+
+const url = process.env.MONGODB_URI;
+
+console.log('connecting to', url);
+
+mongoose
+  .connect(url)
+  .then((result) => {
+    console.log('connected to MongoDB');
+  })
+  .catch((error) => {
+    console.log('error connecting to MongoDB:', error.message);
+  });
+
+let personSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    minLength: 3,
+    required: true,
+  },
+  number: {
+    type: Number,
+    minLength: 7,
+    maxLength: 10,
+    required: true,
+  },
+});
+
+personSchema.set('toJSON', {
+  transform: (document, returnedObject) => {
+    returnedObject.id = returnedObject._id.toString();
+    delete returnedObject._id;
+    delete returnedObject.__v;
+  },
+});
+
+const Person = mongoose.model('Person', personSchema);
 
 const errorHandler = (error, request, response, next) => {
   console.error(error.message);
@@ -58,24 +98,28 @@ app.use(
 //   },
 // ];
 
-app.get('/api/persons', (req, res) => {
+app.get('/api/persons', (req, res, next) => {
   // res.json(people);
-  Person.find({}).then((people) => {
-    res.json(people);
-  });
+  Person.find({})
+    .then((people) => {
+      res.json(people);
+    })
+    .catch((err) => next(err));
 });
 
-app.get('/info', (req, res) => {
-  Person.find({}).then((people) => {
-    res.send(
-      `<p>Phonebook has info for ${
-        people.length
-      } people</p><br /><p>${new Date().toString()}</p>`
-    );
-  });
+app.get('/info', (req, res, next) => {
+  Person.find({})
+    .then((people) => {
+      res.send(
+        `<p>Phonebook has info for ${
+          people.length
+        } people</p><br /><p>${new Date().toString()}</p>`
+      );
+    })
+    .catch((err) => next(err));
 });
 
-app.get('/api/persons/:id', (req, res) => {
+app.get('/api/persons/:id', (req, res, next) => {
   // const id = Number(req.params.id);
 
   // const person = people.find((person) => person.id === id);
@@ -85,9 +129,11 @@ app.get('/api/persons/:id', (req, res) => {
   // } else {
   //   res.status(404).end();
   // }
-  Person.findById(req.params.id).then((person) => {
-    res.json(person);
-  });
+  Person.findById(req.params.id)
+    .then((person) => {
+      res.json(person);
+    })
+    .catch((err) => next(err));
 });
 
 app.post('/api/persons/', (req, res, next) => {
@@ -137,7 +183,7 @@ app.put('/api/persons/:id', (req, res, next) => {
     .catch((error) => next(error));
 });
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3002;
 app.listen(PORT, () => {
   console.log(`listening on port ${PORT}`);
 });

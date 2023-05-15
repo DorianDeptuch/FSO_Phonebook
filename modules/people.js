@@ -15,7 +15,7 @@ mongoose
     console.log('error connecting to MongoDB:', error.message);
   });
 
-personSchema = new mongoose.Schema({
+let personSchema = new mongoose.Schema({
   name: {
     type: String,
     minLength: 3,
